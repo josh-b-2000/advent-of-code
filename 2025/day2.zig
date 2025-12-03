@@ -4,22 +4,30 @@ const data = @embedFile("./day2_input.txt");
 const parseInt = std.fmt.parseInt;
 
 pub fn has_repeat(string: []const u8) bool {
-    if (string.len == 0) {
+    if (string.len < 2) {
         return false;
     }
 
-    if (string.len % 2 != 0) {
-        return false;
+    if (string.len == 2) {
+        return string[0] == string[1];
     }
 
-    const halfway_index = string.len / 2;
+    const substring_max_length = string.len / 2 + 1;
 
-    var index: usize = 0;
-    while (index < halfway_index) : (index += 1) {
-        if (string[index] != string[halfway_index + index]) return false;
+    for (1..substring_max_length) |len| {
+        var iter = std.mem.splitSequence(u8, string, string[0..len]);
+
+        var all_split_empty = true;
+        while (iter.next()) |iter_val| {
+            if (iter_val.len != 0) {
+                all_split_empty = false;
+                break;
+            }
+        }
+
+        if (all_split_empty) return true;
     }
-
-    return true;
+    return false;
 }
 
 pub fn main() !void {
@@ -60,5 +68,5 @@ pub fn main() !void {
     }
 
     std.debug.print("Invalid count: {d}\n", .{invalid_count});
-    try std.testing.expectEqual(invalid_count, 54234399924);
+    try std.testing.expectEqual(invalid_count, 70187097315);
 }
