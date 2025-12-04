@@ -14,7 +14,7 @@ pub fn main() !void {
 
     var lines = std.mem.tokenizeSequence(u8, data, "\n");
 
-    var map = std.AutoArrayHashMap(usize, u8).init(allocator);
+    var map = std.AutoHashMap(usize, u8).init(allocator);
     defer map.deinit();
 
     const first_line = lines.peek().?;
@@ -30,7 +30,9 @@ pub fn main() !void {
     }
 
     var count_valid: usize = 0;
-    for (map.keys()) |test_index| {
+    var iter = map.keyIterator();
+    while (iter.next()) |index_ptr| {
+        const test_index = index_ptr.*;
         const is_left = test_index % col_count == 0;
         const is_right = (test_index + 1) % col_count == 0;
 
@@ -57,8 +59,6 @@ pub fn main() !void {
         std.debug.print("\n{d} - {d} ({d})\n", .{ test_index, touching_count, count_valid });
     }
 
-    for (map.keys()) |val| std.debug.print("{d}\n", .{val});
-
     std.debug.print("\n{d}\n", .{count_valid});
-    try std.testing.expectEqual(count_valid, 1457);
+    try std.testing.expectEqual(1457, count_valid);
 }
