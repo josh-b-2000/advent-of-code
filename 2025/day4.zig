@@ -30,35 +30,53 @@ pub fn main() !void {
     }
 
     var count_valid: usize = 0;
-    var iter = map.keyIterator();
-    while (iter.next()) |index_ptr| {
-        const test_index = index_ptr.*;
-        const is_left = test_index % col_count == 0;
-        const is_right = (test_index + 1) % col_count == 0;
+    var keep_removing = true;
+    while (keep_removing) {
+        keep_removing = false;
 
-        var touching_count: usize = 0;
+        var iter = map.keyIterator();
+        while (iter.next()) |index_ptr| {
+            const test_index = index_ptr.*;
+            const is_not_top = test_index > col_count;
+            const is_left = test_index % col_count == 0;
+            const is_right = (test_index + 1) % col_count == 0;
 
-        // Can check vertical independent of top/bottom
-        // - Need to be wary of going negative though (integer overflow)
-        if (test_index > col_count and map.contains(test_index - col_count)) touching_count += 1;
-        if (map.contains(test_index + col_count)) touching_count += 1;
+            var touching_count: usize = 0;
 
-        if (!is_left) {
-            if (test_index > col_count and map.contains(test_index - col_count - 1)) touching_count += 1;
-            if (map.contains(test_index - 1)) touching_count += 1;
-            if (map.contains(test_index + col_count - 1)) touching_count += 1;
+            // Can check vertical independent of top/bottom
+            // - Need to be wary of going negative though (integer overflow)
+            if (test_index > col_count and map.contains(test_index - col_count)) touching_count += 1;
+            if (map.contains(test_index + col_count)) touching_count += 1;
+
+            if (!is_left) {
+                if (is_not_top and map.contains(test_index - col_count - 1)) touching_count += 1;
+                if (map.contains(test_index - 1)) touching_count += 1;
+                if (map.contains(test_index + col_count - 1)) touching_count += 1;
+            }
+
+            if (!is_right) {
+                if (is_not_top and map.contains(test_index - col_count + 1)) touching_count += 1;
+                if (map.contains(test_index + 1)) touching_count += 1;
+                if (map.contains(test_index + col_count + 1)) touching_count += 1;
+            }
+
+            std.debug.print("{d} - {d}\n", .{ test_index, touching_count });
+
+            if (touching_count < 4) {
+                count_valid += 1;
+                keep_removing = true;
+
+                // This is naughty because modifying the map invalidates the
+                // iterator, but it's fine because the iterator becoming
+                // invalid is essentially the same as me adding a `break`
+                // clause
+                _ = map.remove(test_index);
+                std.debug.print("  removed {d}\n", .{test_index});
+            }
         }
-
-        if (!is_right) {
-            if (test_index > col_count and map.contains(test_index - col_count + 1)) touching_count += 1;
-            if (map.contains(test_index + 1)) touching_count += 1;
-            if (map.contains(test_index + col_count + 1)) touching_count += 1;
-        }
-
-        if (touching_count < 4) count_valid += 1;
-        std.debug.print("\n{d} - {d} ({d})\n", .{ test_index, touching_count, count_valid });
+        std.debug.print("    keep going? {s}\n", .{if (keep_removing) "yes" else "no"});
     }
 
     std.debug.print("\n{d}\n", .{count_valid});
-    try std.testing.expectEqual(1457, count_valid);
+    try std.testing.expectEqual(8310, count_valid);
 }
