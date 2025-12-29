@@ -112,6 +112,10 @@ pub fn main() !void {
         node_rank[i] = 0;
     }
 
+    // We can update the size of each circuit at each update
+    var circuit_size_map = std.hash_map.AutoHashMap(usize, usize).init(allocator);
+    defer circuit_size_map.deinit();
+
     var connections: usize = 0;
     while (edges.bubble_next()) |edge| : (connections += 1) {
         if (connections >= MAX_CONNECTIONS) break;
@@ -130,39 +134,37 @@ pub fn main() !void {
         // Already in same set
         if (node_1_parent == node_2_parent) continue;
 
-        var debug_parent: usize = 0;
+        var old_parent: usize = 0;
+        var new_parent: usize = 0;
 
         // The problem is this logic not properly merging the sets
         if (node_rank[node_1_parent] > node_rank[node_2_parent]) {
             node_parents[node_2_parent] = node_1_parent;
-            debug_parent = node_1_parent;
+
+            old_parent = node_2_parent;
+            new_parent = node_1_parent;
         } else if (node_rank[node_1_parent] < node_rank[node_2_parent]) {
             node_parents[node_1_parent] = node_2_parent;
-            debug_parent = node_2_parent;
+
+            old_parent = node_1_parent;
+            new_parent = node_2_parent;
         } else {
             node_parents[node_2_parent] = node_1_parent;
             node_rank[node_1_parent] += 1;
-            debug_parent = node_1_parent;
+
+            old_parent = node_2_parent;
+            new_parent = node_1_parent;
         }
+
+        const new_circuit_size: usize = circuit_size_map.get(new_parent) orelse 1;
+        const old_circuit_size: usize = circuit_size_map.get(old_parent) orelse 1;
+        _ = circuit_size_map.remove(old_parent);
+        try circuit_size_map.put(new_parent, new_circuit_size + old_circuit_size);
 
         std.debug.print("New connection! (total = {d}, parent = {d})\n", .{
             connections,
-            debug_parent,
+            new_parent,
         });
-    }
-
-    var circuit_size_map = std.hash_map.AutoHashMap(usize, usize).init(allocator);
-    defer circuit_size_map.deinit();
-
-    for (0..nodes.items.len) |node_index| {
-        var node_parent = node_parents[node_index];
-        while (node_parent != node_parents[node_parent])
-            node_parent = node_parents[node_parent];
-
-        if (circuit_size_map.get(node_parent)) |size|
-            try circuit_size_map.put(node_parent, size + 1)
-        else
-            try circuit_size_map.put(node_parent, 1);
     }
 
     var sorted_sizes = try allocator.alloc(usize, circuit_size_map.count());
