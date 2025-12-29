@@ -1,8 +1,6 @@
 const std = @import("std");
 const data = @embedFile("./day8_input.txt");
 
-const MAX_CONNECTIONS: usize = 1000;
-
 const parseInt = std.fmt.parseInt;
 
 // Need a k-d tree for quick traversal of k nearest neighbours
@@ -116,10 +114,8 @@ pub fn main() !void {
     var circuit_size_map = std.hash_map.AutoHashMap(usize, usize).init(allocator);
     defer circuit_size_map.deinit();
 
-    var connections: usize = 0;
-    while (edges.bubble_next()) |edge| : (connections += 1) {
-        if (connections >= MAX_CONNECTIONS) break;
-
+    var total: isize = 0;
+    while (edges.bubble_next()) |edge| {
         const node_1 = edge.index_1;
         const node_2 = edge.index_2;
 
@@ -158,34 +154,18 @@ pub fn main() !void {
 
         const new_circuit_size: usize = circuit_size_map.get(new_parent) orelse 1;
         const old_circuit_size: usize = circuit_size_map.get(old_parent) orelse 1;
+
+        if (new_circuit_size + old_circuit_size == nodes.items.len) {
+            const node_1_x = nodes.items[node_1].x;
+            const node_2_x = nodes.items[node_2].x;
+            total = node_1_x * node_2_x;
+            break;
+        }
+
         _ = circuit_size_map.remove(old_parent);
         try circuit_size_map.put(new_parent, new_circuit_size + old_circuit_size);
-
-        std.debug.print("New connection! (total = {d}, parent = {d})\n", .{
-            connections,
-            new_parent,
-        });
     }
-
-    var sorted_sizes = try allocator.alloc(usize, circuit_size_map.count());
-    defer allocator.free(sorted_sizes);
-
-    {
-        var size_iterator = circuit_size_map.valueIterator();
-        var size_index: usize = 0;
-        while (size_iterator.next()) |size| : (size_index += 1)
-            sorted_sizes[size_index] = size.*;
-    }
-
-    std.mem.sort(usize, sorted_sizes, {}, comptime std.sort.desc(usize));
-    if (sorted_sizes.len < 3) {
-        std.debug.print("Failed to generate 3 circuit sizes\n", .{});
-        return;
-    }
-
-    var total: usize = 1;
-    for (0..3) |i| total *= sorted_sizes[i];
 
     std.debug.print("{d}\n", .{total});
-    try std.testing.expectEqual(115885, total);
+    try std.testing.expectEqual(274150525, total);
 }
